@@ -1,2 +1,2 @@
 # driver
-My first C project, it relates hardware.
+My first C project, it relates to hardware.

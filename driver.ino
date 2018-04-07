@@ -78,8 +78,8 @@ void stop() {
 void turn_left(int value) {
     float difference = value / 2;
     float middle_point = 255 / 2;
-    int right = middle_point - difference;
-    int left = middle_point + difference;
+    int right = middle_point + difference;
+    int left = middle_point - difference;
 
     set_left_wheels(1, left);
     set_right_wheels(1, right);
@@ -88,8 +88,8 @@ void turn_left(int value) {
 void turn_right(int value) {
     float difference = value / 2;
     float middle_point = 255 / 2;
-    int left = middle_point - difference;
-    int right = middle_point + difference;
+    int left = middle_point + difference;
+    int right = middle_point - difference;
 
     set_left_wheels(1, left);
     set_right_wheels(1, right);
@@ -188,7 +188,7 @@ void find_line() {
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(speed);
         
-    } else if ((A == 1) && (B == 1) && (C == 0)) {
+    } else if ((A == 1) && (B == 0) && (C == 0)) {
         turn_right(little);
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {
@@ -203,12 +203,6 @@ void find_line() {
     } else if ((A == 0) && (B == 0) && (C == 0)) {
         if (make_sure(0, 0, 0, 200) == 1) {
             //arrive_black_action();
-            /*
-            stop();
-            delay(1000 * 3);
-            go_straight(speed);
-            delay(1000 * 0.225);
-            */
         }
     }
 }
@@ -226,6 +220,7 @@ void setup() {
 
 void loop() {
     find_line();
+
     /*
     Serial.print("A4: ");
     Serial.print(digitalRead(A4));//can't change

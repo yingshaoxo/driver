@@ -1,22 +1,14 @@
 //#include "core.c"
-/*
-#define AA0 A0
-#define AA1 A1
-#define AA2 A2
-#define AA3 A3
-#define AA4 A4
-#define AA5 A5
-*/
 
 int A, B, C;
 
-int little = 50;//50;//72;
-int much = 150;//150;//200;
-int heavy = 255;//150;//200;
-int speed = 120;//120;
+int little = 50;
+int much = 150;
+int heavy = 255;
+int speed = 120;
 
 float left_bias = 0;
-float right_bias = 0.02734375;//0.0234375;//0.015625;//0.03125;
+float right_bias = 0.02734375;
 
 struct node 
 {
@@ -35,34 +27,6 @@ struct node
     {7, 0, 0, 0},
 };
 int num = -1;
-
-int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
-    int interval = timeout / 10;
-
-    int possibility = 0;
-    int time_spent = 0;
-
-    int hit = 0;
-    int all = 0;
-    while ((possibility <= 50) && (time_spent < timeout)) {
-        if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
-            hit = hit + 1;
-
-        } else {
-        }
-        all = all + 1;
-        possibility = hit / all * 100;
-
-        delay(interval);
-        time_spent = time_spent + interval;
-    }
-    
-    if (time_spent >= timeout) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
 
 void set_left_wheels(int go_or_back, int value) {
     value = value - (value * left_bias);
@@ -98,8 +62,8 @@ void go_straight(int value) {
 }
 
 void go_back(int value) {
-    set_left_wheels(-1, value - (value * left_bias));
-    set_right_wheels(-1, value - (value * right_bias));
+    set_left_wheels(-1, value);
+    set_right_wheels(-1, value);
 }
 
 void stop() {
@@ -127,11 +91,75 @@ void turn_right(int value) {
     set_right_wheels(1, right);
 }
 
-void turn_left_90_degree() {
+void turn_back_left(int value) {
+    float difference = value / 2;
+    float middle_point = 255 / 2;
+    int right = middle_point + difference;
+    int left = middle_point - difference;
+
+    set_left_wheels(-1, left);
+    set_right_wheels(-1, right);
+}
+
+void turn_back_right(int value) {
+    float difference = value / 2;
+    float middle_point = 255 / 2;
+    int left = middle_point + difference;
+    int right = middle_point - difference;
+
+    set_left_wheels(-1, left);
+    set_right_wheels(-1, right);
+}
+
+void white_detect() {
+    A = digitalRead(A0); //black detector
+    B = digitalRead(A2); //white detector
+    C = digitalRead(A4); //black detector
+}
+
+int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
+    int interval = timeout / 10;
+
+    int possibility = 0;
+    int time_spent = 0;
+
+    int hit = 0;
+    int all = 0;
+    while ((possibility <= 50) && (time_spent < timeout)) {
+        if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
+            hit = hit + 1;
+        }
+
+        all = all + 1;
+        possibility = hit / all * 100;
+
+        delay(interval);
+        time_spent = time_spent + interval;
+    }
+    
+    if (time_spent >= timeout) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int if_its_90_degree_corner() {
+        go_straight(speed);
+        delay(1000 * 0.05);
+        stop();
+        delay(1000 * 0.5);
+        white_detect();
+        if ((A == 1) && (B == 1) && (C == 1)) {
+            return 1
+        } else {
+            return 0
+        }
+}
+
+void turn_left_90_degrees_intelligently() {
     while (1) {
-        //turn_left(255);
-        set_left_wheels(-1, 255);
-        set_right_wheels(-1, 0);
+        turn_back_right(heavy);
         delay(1000 * 0.1);
 
         white_detect();
@@ -139,6 +167,36 @@ void turn_left_90_degree() {
             break;
         }
     }
+    go_straight(speed);
+    delay(1000 * 0.1);
+}
+
+void turn_right_90_degrees_intelligently() {
+    while (1) {
+        turn_back_left(heavy);
+        delay(1000 * 0.1);
+
+        white_detect();
+        if (make_sure(1, 0, 1, 200) == 1) {
+            break;
+        }
+    }
+    go_straight(speed);
+    delay(1000 * 0.1);
+}
+
+void turn_left_90_degrees_stupidly() {
+    turn_back_right(heavy);
+    delay(1000 * 0.5);
+    go_straight(speed);
+    delay(1000 * 0.2);
+}
+
+void turn_right_90_degrees_stupidly() {
+    turn_back_left(heavy);
+    delay(1000 * 0.5);
+    go_straight(speed);
+    delay(1000 * 0.2);
 }
 
 int ultrasonic_wave(int trigPin, int echoPin) {
@@ -154,12 +212,6 @@ int ultrasonic_wave(int trigPin, int echoPin) {
     duration = duration / 59;
     if ((duration < 2) || (duration > 300)) return false;
     return duration;
-}
-
-void white_detect() {
-    A = digitalRead(A0); //black detector
-    B = digitalRead(A2); //white detector
-    C = digitalRead(A4); //black detector
 }
 
 void arrive_non_black_action() {
@@ -202,36 +254,20 @@ void find_line() {
 
     } else if ((A == 1) && (B == 1) && (C == 0)) {
         turn_right(much);
-        Serial.print("right\n");
         
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(speed);
-        Serial.print("go\n");
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
         //turn_right(little);
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {
         turn_left(much);
-        Serial.print("left\n");
 
-    /*
-    } else if ((A == 1) && (B == 0) && (C == 1)) {
-        go_straight(speed);
-    */
-        
     } else if ((A == 0) && (B == 0) && (C == 1)) {
         //turn_left(little);
-        //turn_left_90_degree();
-        stop();
-        delay(1000);
-        go_straight(speed);
-        delay(1000 * 0.05);
-        stop();
-        delay(1000);
-        white_detect();
-        if ((A == 1) && (B == 1) && (C == 1)) {
-            turn_left_90_degree();
+        if (if_its_90_degree_corner() == 1) {
+            turn_left_90_degrees_intelligently();
         }
         
     } else if ((A == 0) && (B == 0) && (C == 0)) {
@@ -240,12 +276,6 @@ void find_line() {
         }
     }
 }
-
-
-/*
-int main() {
-}
-*/
 
 void setup() {
     Serial.begin(9600);
@@ -256,21 +286,5 @@ void setup() {
 void loop() {
     find_line();
 
-    //go_straight(255);
-    /*
-    Serial.print("A3: ");
-    Serial.print(digitalRead(A3));//can't change
-    Serial.print("\n");//can't change
-    delay(200);
-    Serial.print("A3: ");
-    Serial.print(digitalRead(A3));//can't change
-    delay(200);
-    */
-
-    /*
-    Serial.print("wave: ");
-    printfln(ultrasonic_wave(2, 17));//can't change
-    printfln(" ");
-    delay(200);
-    */
+    //Serial.print("Hello, world!");
 }

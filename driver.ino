@@ -188,7 +188,7 @@ void find_line() {
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(speed);
         
-    } else if ((A == 1) && (B == 1) && (C == 0)) {
+    } else if ((A == 1) && (B == 0) && (C == 0)) {
         turn_right(little);
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {

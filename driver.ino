@@ -189,7 +189,9 @@ void find_line() {
         go_straight(speed);
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
-        turn_right(little);
+        //turn_right(little);
+        turn_right(255);
+        delay(1000 * 0.5);
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {
         turn_left(much);
@@ -198,7 +200,7 @@ void find_line() {
         go_straight(speed);
         
     } else if ((A == 0) && (B == 0) && (C == 1)) {
-        turn_left(little);
+        //turn_left(little);
         
     } else if ((A == 0) && (B == 0) && (C == 0)) {
         if (make_sure(0, 0, 0, 200) == 1) {
@@ -213,17 +215,6 @@ void find_line() {
     }
 }
 
-int find_line_timer(float time_up) {
-    delay(interval);
-    find_line();
-    total_time = total_time + interval;
-    if ((time_up * 1000) > total_time) {
-        return 1;
-    else {
-        total_time = 0;
-        return 0;
-    }
-}
 
 /*
 int main() {

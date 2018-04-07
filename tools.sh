@@ -28,6 +28,11 @@ push() {
     git push origin
 }
 
+reset() {
+    git fetch origin
+    git reset --hard origin/master
+}
+
 if [ "$1" == "open" ]; then
     open
 
@@ -36,6 +41,9 @@ elif [ "$1" == "test" ]; then
 
 elif [ "$1" == "push" ]; then
     push
+
+elif [ "$1" == "reset" ]; then
+    reset
 
 elif [ "$1" == "" ]; then
     echo "open 

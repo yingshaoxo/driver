@@ -16,6 +16,9 @@ int much = 150;//150;//200;
 int heavy = 255;//150;//200;
 int speed = 120;//120;
 
+float left_bias = 0;
+float right_bias = 0.02734375;//0.0234375;//0.015625;//0.03125;
+
 struct node 
 {
     int key;
@@ -35,6 +38,7 @@ struct node
 int num = -1;
 
 void set_left_wheels(int go_or_back, int value) {
+    value = value - (value * left_bias);
     if (go_or_back == 1) {
         analogWrite(9, value);
         analogWrite(10, 0);
@@ -48,6 +52,7 @@ void set_left_wheels(int go_or_back, int value) {
 }
 
 void set_right_wheels(int go_or_back, int value) {
+    value = value - (value * right_bias);
     if (go_or_back == 1) {
         analogWrite(5, value);
         analogWrite(6, 0);
@@ -66,8 +71,8 @@ void go_straight(int value) {
 }
 
 void go_back(int value) {
-    set_left_wheels(-1, value);
-    set_right_wheels(-1, value);
+    set_left_wheels(-1, value - (value * left_bias));
+    set_right_wheels(-1, value - (value * right_bias));
 }
 
 void stop() {
@@ -78,8 +83,8 @@ void stop() {
 void turn_left(int value) {
     float difference = value / 2;
     float middle_point = 255 / 2;
-    int right = middle_point - difference;
-    int left = middle_point + difference;
+    int right = middle_point + difference;
+    int left = middle_point - difference;
 
     set_left_wheels(1, left);
     set_right_wheels(1, right);
@@ -88,8 +93,8 @@ void turn_left(int value) {
 void turn_right(int value) {
     float difference = value / 2;
     float middle_point = 255 / 2;
-    int left = middle_point - difference;
-    int right = middle_point + difference;
+    int left = middle_point + difference;
+    int right = middle_point - difference;
 
     set_left_wheels(1, left);
     set_right_wheels(1, right);
@@ -184,23 +189,42 @@ void find_line() {
 
     } else if ((A == 1) && (B == 1) && (C == 0)) {
         turn_right(much);
+        Serial.print("right\n");
         
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(speed);
+        Serial.print("go\n");
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
         //turn_right(little);
-        turn_right(255);
-        delay(1000 * 0.5);
+        if (!((A == 0) && (B == 0) && (C == 0))) {
+            stop();
+            delay(2000);
+        }
+        /*while ((A == 1) && (B == 0) && (C == 1)) {
+            turn_right(255);
+            delay(1000 * interval);
+            white_detect();
+            go_back(speed);
+            delay(500 * interval);
+        }
+        */
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {
         turn_left(much);
+        Serial.print("left\n");
 
+    /*
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(speed);
+    */
         
     } else if ((A == 0) && (B == 0) && (C == 1)) {
         //turn_left(little);
+        if (!((A == 0) && (B == 0) && (C == 0))) {
+            stop();
+            delay(2000);
+        }
         
     } else if ((A == 0) && (B == 0) && (C == 0)) {
         if (make_sure(0, 0, 0, 200) == 1) {
@@ -229,6 +253,9 @@ void setup() {
 
 void loop() {
     find_line();
+
+    //go_straight(255);
+
     /*
     Serial.print("A4: ");
     Serial.print(digitalRead(A4));//can't change

@@ -213,18 +213,6 @@ void find_line() {
     }
 }
 
-int find_line_timer(float time_up) {
-    delay(interval);
-    find_line();
-    total_time = total_time + interval;
-    if ((time_up * 1000) > total_time) {
-        return 1;
-    else {
-        total_time = 0;
-        return 0;
-    }
-}
-
 /*
 int main() {
 }

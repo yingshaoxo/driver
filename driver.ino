@@ -91,6 +91,7 @@ void turn_right(int value) {
     set_right_wheels(1, right);
 }
 
+/*
 void turn_back_left(int value) {
     float difference = value / 2;
     float middle_point = 255 / 2;
@@ -110,6 +111,7 @@ void turn_back_right(int value) {
     set_left_wheels(-1, left);
     set_right_wheels(-1, right);
 }
+*/
 
 void left_rotate(int value) {
     set_right_wheels(1, value);
@@ -160,38 +162,38 @@ void return_to_black_line() {
         delay(1000 * 0.01);
 
         white_detect();
-        if ((make_sure(1, 1, 1, 200) == 0)) {
-        //if ( (make_sure(0, 1, 1, 100) == 1) || (make_sure(0, 0, 1, 100) == 1) || (make_sure(0, 0, 0, 100) == 1) || (make_sure(1, 1, 0, 100) == 1) || (make_sure(1, 0, 0, 100) == 1) || (make_sure(1, 0, 1, 100) == 1) ) {
+        if ((make_sure(1, 1, 1, 200) != 0)) {
             break;
         }
     }
 }
 
-int if_its_90_degree_corner() {
+int if_its_90_degree_corner(int timeout) {
+    int time_spent = 0;
+    float interval = 0.01;
+
+    stop();
+    delay(1000 * interval);
+
+    while (1) {
         go_straight(speed);
-        delay(1000 * 0.05);
-        stop();
-        delay(1000 * 0.5);
+        delay(1000 * interval);
 
         white_detect();
         if ((A == 1) && (B == 1) && (C == 1)) {
             return 1;
-        } else {
-            return 0;
         }
+
+        time_spent = time_spent + (1000 * interval);
+        if (time_spent > timeout) {
+            break;
+        }
+    }
+    
+    return 0;
 }
 
 void turn_left_90_degrees_intelligently() {
-    /*
-    while (1) {
-        go_back(little);
-        delay(1000 * 0.01);
-
-        white_detect();
-        if ( (make_sure(0, 1, 1, 100) == 1) || (make_sure(0, 0, 1, 100) == 1) || (make_sure(0, 0, 0, 100) == 1) ) {
-            break;
-        }
-    }*/
     return_to_black_line();
 
     while (1) {
@@ -209,16 +211,6 @@ void turn_left_90_degrees_intelligently() {
 }
 
 void turn_right_90_degrees_intelligently() {
-    /*
-    while (1) {
-        go_back(little);
-        delay(1000 * 0.01);
-
-        white_detect();
-        if ( (make_sure(1, 1, 0, 100) == 1) || (make_sure(1, 0, 0, 100) == 1) || (make_sure(0, 0, 0, 100) == 1) ) {
-            break;
-        }
-    }*/
     return_to_black_line();
 
     while (1) {
@@ -307,8 +299,12 @@ void find_line() {
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
         //turn_right(little);
-        if (if_its_90_degree_corner() == 1) {
+        if (if_its_90_degree_corner(200) == 1) {
             turn_right_90_degrees_intelligently();
+        } else {
+            digitalWrite(A3, 1);
+            delay(500);
+            digitalWrite(A3, 0);
         }
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {
@@ -317,14 +313,16 @@ void find_line() {
 
     } else if ((A == 0) && (B == 0) && (C == 1)) {
         //turn_left(little);
-        if (if_its_90_degree_corner() == 1) {
+        if (if_its_90_degree_corner(200) == 1) {
             turn_left_90_degrees_intelligently();
+        } else {
+            digitalWrite(A3, 1);
+            delay(500);
+            digitalWrite(A3, 0);
         }
         
     } else if ((A == 0) && (B == 0) && (C == 0)) {
-        if (make_sure(0, 0, 0, 300) == 1) {
-            //arrive_black_action();
-        }
+        //arrive_black_action();
     }
 }
 

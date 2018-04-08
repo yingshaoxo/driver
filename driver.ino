@@ -151,9 +151,9 @@ int if_its_90_degree_corner() {
         delay(1000 * 0.5);
         white_detect();
         if ((A == 1) && (B == 1) && (C == 1)) {
-            return 1
+            return 1;
         } else {
-            return 0
+            return 0;
         }
 }
 

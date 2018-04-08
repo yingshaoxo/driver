@@ -3,8 +3,8 @@
 int A, B, C;
 
 int little = 50;
-int much = 150;
-int heavy = 255;
+int much = 100;
+int heavy = 200;
 int speed = 120;
 
 float left_bias = 0;
@@ -111,6 +111,16 @@ void turn_back_right(int value) {
     set_right_wheels(-1, right);
 }
 
+void left_rotate(int value) {
+    set_right_wheels(1, value);
+    set_left_wheels(-1, value);
+}
+
+void right_rotate(int value) {
+    set_left_wheels(1, value);
+    set_right_wheels(-1, value);
+}
+
 void white_detect() {
     A = digitalRead(A0); //black detector
     B = digitalRead(A2); //white detector
@@ -144,11 +154,25 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     }
 }
 
+void return_to_black_line() {
+    while (1) {
+        go_back(little);
+        delay(1000 * 0.01);
+
+        white_detect();
+        if ((make_sure(1, 1, 1, 200) == 0)) {
+        //if ( (make_sure(0, 1, 1, 100) == 1) || (make_sure(0, 0, 1, 100) == 1) || (make_sure(0, 0, 0, 100) == 1) || (make_sure(1, 1, 0, 100) == 1) || (make_sure(1, 0, 0, 100) == 1) || (make_sure(1, 0, 1, 100) == 1) ) {
+            break;
+        }
+    }
+}
+
 int if_its_90_degree_corner() {
         go_straight(speed);
         delay(1000 * 0.05);
         stop();
         delay(1000 * 0.5);
+
         white_detect();
         if ((A == 1) && (B == 1) && (C == 1)) {
             return 1;
@@ -158,45 +182,67 @@ int if_its_90_degree_corner() {
 }
 
 void turn_left_90_degrees_intelligently() {
+    /*
     while (1) {
-        turn_back_right(heavy);
-        delay(1000 * 0.1);
+        go_back(little);
+        delay(1000 * 0.01);
+
+        white_detect();
+        if ( (make_sure(0, 1, 1, 100) == 1) || (make_sure(0, 0, 1, 100) == 1) || (make_sure(0, 0, 0, 100) == 1) ) {
+            break;
+        }
+    }*/
+    return_to_black_line();
+
+    while (1) {
+        left_rotate(heavy);
+        delay(1000 * 0.05);
 
         white_detect();
         if (make_sure(1, 0, 1, 200) == 1) {
             break;
         }
     }
+
     go_straight(speed);
     delay(1000 * 0.1);
 }
 
 void turn_right_90_degrees_intelligently() {
+    /*
     while (1) {
-        turn_back_left(heavy);
-        delay(1000 * 0.1);
+        go_back(little);
+        delay(1000 * 0.01);
+
+        white_detect();
+        if ( (make_sure(1, 1, 0, 100) == 1) || (make_sure(1, 0, 0, 100) == 1) || (make_sure(0, 0, 0, 100) == 1) ) {
+            break;
+        }
+    }*/
+    return_to_black_line();
+
+    while (1) {
+        right_rotate(heavy);
+        delay(1000 * 0.05);
 
         white_detect();
         if (make_sure(1, 0, 1, 200) == 1) {
             break;
         }
     }
+
     go_straight(speed);
     delay(1000 * 0.1);
 }
 
 void turn_left_90_degrees_stupidly() {
-    turn_back_right(heavy);
-    delay(1000 * 0.5);
-    go_straight(speed);
-    delay(1000 * 0.2);
+    left_rotate(255);
+    delay(1000 * 0.3);
 }
 
 void turn_right_90_degrees_stupidly() {
-    turn_back_left(heavy);
-    delay(1000 * 0.5);
-    go_straight(speed);
-    delay(1000 * 0.2);
+    right_rotate(255);
+    delay(1000 * 0.3);
 }
 
 int ultrasonic_wave(int trigPin, int echoPin) {
@@ -253,16 +299,21 @@ void find_line() {
         //arrive_non_black_action();
 
     } else if ((A == 1) && (B == 1) && (C == 0)) {
-        turn_right(much);
+        //turn_right(much);
+        right_rotate(much);
         
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(speed);
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
         //turn_right(little);
+        if (if_its_90_degree_corner() == 1) {
+            turn_right_90_degrees_intelligently();
+        }
         
     } else if ((A == 0) && (B == 1) && (C == 1)) {
-        turn_left(much);
+        //turn_left(much);
+        left_rotate(much);
 
     } else if ((A == 0) && (B == 0) && (C == 1)) {
         //turn_left(little);

@@ -303,7 +303,7 @@ void find_line() {
             turn_right_90_degrees_intelligently();
         } else {
             digitalWrite(A3, 1);
-            delay(500);
+            delay(300);
             digitalWrite(A3, 0);
         }
         
@@ -317,7 +317,7 @@ void find_line() {
             turn_left_90_degrees_intelligently();
         } else {
             digitalWrite(A3, 1);
-            delay(500);
+            delay(300);
             digitalWrite(A3, 0);
         }
         

@@ -1,41 +1,18 @@
 #include "core.c"
 
-/*
-#define AA0 A0
-#define AA1 A1
-#define AA2 A2
-#define AA3 A3
-#define AA4 A4
-#define AA5 A5
-*/
+int A, B, C, D;
 
-int A, B, C;
-int R, G, B;
+int light = 70;
+int normal = 200;
+int heavy = 255;
 
-int little = 50;//50;//72;
-int much = 150;//150;//200;
-int heavy = 255;//150;//200;
-int speed = 120;//120;
+float left_bias = 0;
+float right_bias = 0.02734375;
 
-struct node 
-{
-    int key;
-    int delay_time;
-    int direction;
-    int speed;
-} nodes[8] = {
-    {0, 1000, 0, 0},
-    {1, 1000, 0, 255},
-    {2, 0, -1, 255},
-    {3, 0, 0, 0},
-    {4, 0, 0, 0},
-    {5, 0, 0, 0},
-    {6, 0, 0, 0},
-    {7, 0, 0, 0},
-};
-int num = -1;
+float special_action_interval = 0.1 * 1000;
 
 void set_left_wheels(int go_or_back, int value) {
+    value = value - (value * left_bias);
     if (go_or_back == 1) {
         analogWrite(9, value);
         analogWrite(10, 0);
@@ -49,6 +26,7 @@ void set_left_wheels(int go_or_back, int value) {
 }
 
 void set_right_wheels(int go_or_back, int value) {
+    value = value - (value * right_bias);
     if (go_or_back == 1) {
         analogWrite(5, value);
         analogWrite(6, 0);
@@ -60,6 +38,37 @@ void set_right_wheels(int go_or_back, int value) {
         analogWrite(6, 0);
     }
 }
+
+/*
+// handle pins by hands
+void set_left_wheels(int go_or_back, int value) {
+    value = value - (value * left_bias);
+    if (go_or_back == 1) {
+        analogWrite(6, value);
+        analogWrite(7, 0);
+    } else if (go_or_back == -1) {
+        analogWrite(7, value);
+        analogWrite(6, 0);
+    } else if (go_or_back == 0) {
+        analogWrite(6, 0);
+        analogWrite(7, 0);
+    }
+}
+
+void set_right_wheels(int go_or_back, int value) {
+    value = value - (value * right_bias);
+    if (go_or_back == 1) {
+        analogWrite(4, value);
+        analogWrite(5, 0);
+    } else if (go_or_back == -1) {
+        analogWrite(5, value);
+        analogWrite(4, 0);
+    } else if (go_or_back == 0) {
+        analogWrite(4, 0);
+        analogWrite(5, 0);
+    }
+}
+*/
 
 void go_straight(int value) {
     set_left_wheels(1, value);
@@ -76,49 +85,41 @@ void stop() {
     set_right_wheels(0, 0);
 }
 
-void turn_left(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int right = middle_point - difference;
-    int left = middle_point + difference;
-
-    set_left_wheels(1, left);
-    set_right_wheels(1, right);
+void left_rotate(int value) {
+    set_right_wheels(1, value);
+    set_left_wheels(-1, value);
 }
 
-void turn_right(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int left = middle_point - difference;
-    int right = middle_point + difference;
-
-    set_left_wheels(1, left);
-    set_right_wheels(1, right);
-}
-
-int ultrasonic_wave(int trigPin, int echoPin) {
-    long duration;
-    pinMode(trigPin, OUTPUT);
-    pinMode(echoPin, INPUT);
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(20);
-    digitalWrite(trigPin, LOW);
-    duration = pulseIn(echoPin, HIGH);
-    duration = duration / 59;
-    if ((duration < 2) || (duration > 300)) return false;
-    return duration;
+void right_rotate(int value) {
+    set_left_wheels(1, value);
+    set_right_wheels(-1, value);
 }
 
 void white_detect() {
-    A = digitalRead(A0); //black detector
-    B = digitalRead(A2); //white detector
-    C = digitalRead(A4); //black detector
+    A = digitalRead(A0); //return 1 if it is white
+    B = digitalRead(A2); 
+    C = digitalRead(A4); 
+    D = digitalRead(A3); 
+
+    /*
+    // handle pins by hands
+    A = digitalRead(A1); //return 1 if it is white
+    B = digitalRead(A2); 
+    C = digitalRead(A3); 
+    D = digitalRead(A4); 
+    */
 }
 
-int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
-    int interval = timeout / 10;
+int make_sure(int whatsA, int whatsB, int whatsC, int whatsD, int timeout) {
+    if (timeout == 0) {
+        if ((whatsA == A) && (whatsB == B) && (whatsC == C) && (whatsD == D)) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    int interval = timeout / (timeout/4);
 
     int possibility = 0;
     int time_spent = 0;
@@ -126,18 +127,18 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     int hit = 0;
     int all = 0;
     while ((possibility <= 50) && (time_spent < timeout)) {
-        if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
+        white_detect();
+        if ((whatsA == A) && (whatsB == B) && (whatsC == C) && (whatsD == D)) {
             hit = hit + 1;
-
-        } else {
         }
+
         all = all + 1;
         possibility = hit / all * 100;
 
         delay(interval);
         time_spent = time_spent + interval;
     }
-    
+
     if (time_spent >= timeout) {
         return 0;
     } else {
@@ -145,105 +146,171 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     }
 }
 
-void arrive_non_black_action() {
-    go_straight(speed/100 * 50); 
-    while ((A == 1) && (B == 1) && (C == 1)) {
-        //delay(1000 * 0.5);
+void back_to_black_line() {
+    while (1) {
+        go_back(light);
+        delay(special_action_interval);
+        stop();
+
         white_detect();
+        if ((make_sure(1, 1, 1, 1, 0) == 0)) {
+            break;
+        }
     }
 }
 
-void arrive_black_action() {
-    num = num + 1;
+/*
+// uncertain function
+void back_to_black_line() {
+    while (1) {
+        go_back(light);
 
-    go_straight(speed);
-    delay(nodes[num].delay_time);
+        white_detect();
+        if ((make_sure(1, 1, 1, 1, 200) == 0)) {
+            break;
+        }
+    }
+}
+*/
+
+int if_its_90_degree_corner(int timeout) {
+    int time_spent = 0;
+
+    stop(); //moveable
+    delay(1000);
+
+    while (1) {
+        go_straight(normal);
+        delay(special_action_interval);
+        stop();
+
+        white_detect();
+        if (make_sure(1, 1, 1, 1, 0) == 1) {
+            back_to_black_line();
+            return 1;
+        }
+
+        time_spent = time_spent + special_action_interval;
+        if (time_spent > timeout) {
+            break;
+        }
+    }
+
+    back_to_black_line();
+    return 0;
+}
+
+/*
+// uncertain function
+int if_its_90_degree_corner(int timeout) {
+    int time_spent = 0;
 
     stop();
-    delay(3000);
+    delay(special_action_interval);
 
-    if (nodes[num].direction == -1) {
-        turn_left(heavy);
-        delay(2000);
-    } else if (nodes[num].direction == 0) {
+    while (1) {
+        go_straight(speed);
 
-    } else if (nodes[num].direction == 1) {
-        turn_right(heavy);
-        delay(2000);
+        white_detect();
+        if (make_sure(1, 1, 1, 1, 200) == 1) {
+            back_to_black_line();
+            return 1;
+        }
+
+        time_spent = time_spent + (1000 * interval);
+        if (time_spent > timeout) {
+            break;
+        }
     }
 
-    if (nodes[num].speed != 0 ) {
-        go_straight(nodes[num].speed);
+    back_to_black_line();
+    return 0;
+}
+*/
+
+void turn_left_90_degrees_intelligently() {
+    while (1) {
+        left_rotate(heavy);
+        delay(special_action_interval);
+        stop();
+
+        white_detect();
+        if (make_sure(1, 1, 1, 1, 0) == 1) {
+            break;
+        }
     }
+
+    go_straight(normal);
+    delay(500);
+}
+
+void turn_right_90_degrees_intelligently() {
+    while (1) {
+        right_rotate(heavy);
+        delay(special_action_interval);
+        stop();
+
+        white_detect();
+        if (make_sure(1, 1, 1, 1, 0) == 1) {
+            break;
+        }
+    }
+
+    go_straight(normal);
+    delay(500);
 }
 
 void find_line() {
     white_detect();
 
-    if ((A == 1) && (B == 1) && (C == 1)) {
-        //arrive_non_black_action();
+    if ((A == 1) && (B == 1) && (C == 1) && (D == 1)) {
+        go_straight(normal);
 
-    } else if ((A == 1) && (B == 1) && (C == 0)) {
-        turn_right(much);
-        
-    } else if ((A == 1) && (B == 0) && (C == 1)) {
-        go_straight(speed);
-        
-    } else if ((A == 1) && (B == 1) && (C == 0)) {
-        turn_right(little);
-        
-    } else if ((A == 0) && (B == 1) && (C == 1)) {
-        turn_left(much);
+    } else if ((A == 1) && (B == 1) && (C == 0) && (D == 1)) {
+        right_rotate(light);
 
-    } else if ((A == 1) && (B == 0) && (C == 1)) {
-        go_straight(speed);
-        
-    } else if ((A == 0) && (B == 0) && (C == 1)) {
-        turn_left(little);
-        
-    } else if ((A == 0) && (B == 0) && (C == 0)) {
-        if (make_sure(0, 0, 0, 200) == 1) {
-            arrive_black_action();
-            /*
-            stop();
-            delay(1000 * 3);
-            go_straight(speed);
-            delay(1000 * 0.225);
-            */
+    } else if ((A == 1) && (B == 0) && (C == 1) && (D == 1)) {
+        left_rotate(light);
+
+    } else if ((A == 1) && (B == 1) && (C == 0) && (D == 0)) {
+        if (if_its_90_degree_corner(200) == 1) {
+            turn_right_90_degrees_intelligently();
         }
-        /*
-        */
+
+    } else if ((A == 0) && (B == 0) && (C == 1) && (D == 1)) {
+        if (if_its_90_degree_corner(200) == 1) {
+            turn_left_90_degrees_intelligently();
+        }
+
+    } else if ((A == 0) && (B == 0) && (C == 0) && (D == 0)) {
+        stop();
+
     }
 }
 
-/*
-int main() {
-}
-*/
-
 void setup() {
-    //Serial.begin(9600);
-    //go_straight(120);
-    //delay(1000);
+    pinMode(9, OUTPUT);
+    pinMode(10, OUTPUT);
+    pinMode(5, OUTPUT);
+    pinMode(6, OUTPUT);
+    pinMode(A0, INPUT);
+    pinMode(A2, INPUT);
+    pinMode(A4, INPUT);
+    pinMode(A3, INPUT);
 
+    /*
+    pinMode(6, OUTPUT);
+    pinMode(7, OUTPUT);
+    pinMode(4, OUTPUT);
+    pinMode(5, OUTPUT);
+    pinMode(A1, INPUT);
+    pinMode(A2, INPUT);
+    pinMode(A3, INPUT);
+    pinMode(A4, INPUT);
+    */
 }
 
 void loop() {
-    //find_line();
-    
-    /*
-    printf("A4: ");
-    printf(digitalRead(A4));//can't change
-    printf(" ");//can't change
-    printf("A3: ");
-    printf(digitalRead(A3));//can't change
-    delay(200);
-    */
-
-    /*
-    printf("wave: ");
-    printfln(ultrasonic_wave(2, 17));//can't change
-    printfln(" ");
-    delay(200);
-    */
+    find_line();
 }
+

@@ -273,14 +273,20 @@ void find_line() {
         left_rotate(light);
 
     } else if ((A == 1) && (B == 1) && (C == 0) && (D == 0)) {
+        right_rotate(heavy);
+        /*
         if (if_its_90_degree_corner(200) == 1) {
             turn_right_90_degrees_intelligently();
         }
+        */
 
     } else if ((A == 0) && (B == 0) && (C == 1) && (D == 1)) {
+        left_rotate(heavy);
+        /*
         if (if_its_90_degree_corner(200) == 1) {
             turn_left_90_degrees_intelligently();
         }
+        */
 
     } else if ((A == 0) && (B == 0) && (C == 0) && (D == 0)) {
         stop();

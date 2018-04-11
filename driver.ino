@@ -295,6 +295,8 @@ void find_line() {
 }
 
 void setup() {
+    Serial.begin(9600);
+
     pinMode(9, OUTPUT);
     pinMode(10, OUTPUT);
     pinMode(5, OUTPUT);
@@ -317,6 +319,8 @@ void setup() {
 }
 
 void loop() {
-    find_line();
+    Serial.println(analogRead(A0));
+    delay(500);
+    //find_line();
 }
 

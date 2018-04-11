@@ -1,14 +1,16 @@
 //#include "core.c"
 
-int A, B, C;
+int A, B, C, D;
+int grey_gate = 500;
 
-int little = 50;
-int much = 100;
-int heavy = 200;
-int speed = 120;
+int light = 70;
+int normal = 200;
+int heavy = 255;
 
 float left_bias = 0;
 float right_bias = 0.02734375;
+
+float special_action_interval = 0.5 * 1000;
 
 struct node 
 {
@@ -91,28 +93,6 @@ void turn_right(int value) {
     set_right_wheels(1, right);
 }
 
-/*
-void turn_back_left(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int right = middle_point + difference;
-    int left = middle_point - difference;
-
-    set_left_wheels(-1, left);
-    set_right_wheels(-1, right);
-}
-
-void turn_back_right(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int left = middle_point + difference;
-    int right = middle_point - difference;
-
-    set_left_wheels(-1, left);
-    set_right_wheels(-1, right);
-}
-*/
-
 void left_rotate(int value) {
     set_right_wheels(1, value);
     set_left_wheels(-1, value);
@@ -123,14 +103,71 @@ void right_rotate(int value) {
     set_right_wheels(-1, value);
 }
 
+int handle_white_detector(int pin) {
+    if (analogRead(pin) < 100) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int handle_gray_detector(int pin) {
+    //Serial.println(analogRead(pin));
+    if (analogRead(pin) > grey_gate) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void analog_white_detect() {
+    A = handle_gray_detector(A1); //return 1 if it is white
+    B = handle_gray_detector(A2);
+    C = handle_gray_detector(A3);
+    D = handle_gray_detector(A4);
+
+    Serial.print("ABC and D: \n");
+    Serial.print(A);
+    Serial.print(B);
+    Serial.print(C);
+    Serial.print(" and ");
+    Serial.print(D);
+    Serial.println();
+    Serial.println();
+}
+
 void white_detect() {
-    A = digitalRead(A0); //black detector
-    B = digitalRead(A2); //white detector
-    C = digitalRead(A4); //black detector
+    analog_white_detect();
+
+    /*
+    A = digitalRead(A1); //return 1 if it is white
+    B = digitalRead(A2);
+    C = digitalRead(A3);
+    D = digitalRead(A4);
+    */
+
+    /*
+    Serial.print("ABC and D: \n");
+    Serial.print(A);
+    Serial.print(B);
+    Serial.print(C);
+    Serial.print(" and ");
+    Serial.print(D);
+    Serial.println();
+    Serial.println();
+    */
 }
 
 int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
-    int interval = timeout / 10;
+    if (timeout == 0) {
+        if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    int interval = timeout / (timeout/4);
 
     int possibility = 0;
     int time_spent = 0;
@@ -138,6 +175,7 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     int hit = 0;
     int all = 0;
     while ((possibility <= 50) && (time_spent < timeout)) {
+        white_detect();
         if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
             hit = hit + 1;
         }
@@ -148,7 +186,7 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
         delay(interval);
         time_spent = time_spent + interval;
     }
-    
+
     if (time_spent >= timeout) {
         return 0;
     } else {
@@ -156,13 +194,35 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     }
 }
 
-void return_to_black_line() {
+void prepare_for_anything() {
+    int times = 1;
     while (1) {
-        go_back(little);
-        delay(1000 * 0.01);
+        left_rotate(light);
+        delay(special_action_interval * times);
 
         white_detect();
-        if ((make_sure(1, 1, 1, 200) != 0)) {
+        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
+            break;
+        }
+
+        right_rotate(light);
+        delay(special_action_interval * times);
+
+        white_detect();
+        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
+            break;
+        }
+
+        times = times + 1;
+    }
+}
+
+void back_to_black_line() {
+    while (1) {
+        go_back(light);
+
+        white_detect();
+        if ((make_sure(1, 1, 1, 0) == 0)) {
             break;
         }
     }
@@ -170,61 +230,92 @@ void return_to_black_line() {
 
 int if_its_90_degree_corner(int timeout) {
     int time_spent = 0;
-    float interval = 0.01;
 
     stop();
-    delay(1000 * interval);
+    delay(1000);
 
     while (1) {
         go_straight(speed);
-        delay(1000 * interval);
+        delay(special_action_interval);
+        stop();
 
         white_detect();
-        if ((A == 1) && (B == 1) && (C == 1)) {
+        if (make_sure(1, 1, 1, 0) == 1) {
             return 1;
         }
 
-        time_spent = time_spent + (1000 * interval);
+        time_spent = time_spent + special_action_interval;
         if (time_spent > timeout) {
             break;
         }
     }
-    
+
+    back_to_black_line();
     return 0;
 }
 
-void turn_left_90_degrees_intelligently() {
-    return_to_black_line();
-
-    while (1) {
-        left_rotate(heavy);
-        delay(1000 * 0.05);
+/*
+void turn_left_90_degrees_intelligently() { 
+    while (1) { 
+        left_rotate(heavy); 
+        delay(special_action_interval); 
+        stop(); 
+ 
+        white_detect(); 
+        if (make_sure(1, 0, 1, 0) == 1) { 
+            break; 
+        } 
+    } 
+ 
+    go_straight(normal); 
+    delay(500); 
+} 
+ 
+void turn_right_90_degrees_intelligently() { 
+    while (1) { 
+        right_rotate(heavy);
+        delay(special_action_interval);
+        stop();
 
         white_detect();
-        if (make_sure(1, 0, 1, 200) == 1) {
+        if (make_sure(1, 0, 1, 0) == 1) {
             break;
         }
     }
 
+    go_straight(normal);
+    delay(500);
+}
+*/
+
+void turn_left_90_degrees_intelligently() {
+    while (1) {
+        left_rotate(light);
+
+        white_detect();
+        if (make_sure(1, 0, 1, 0) == 1) {
+            break;
+        }
+    }
+    /*
     go_straight(speed);
     delay(1000 * 0.1);
+    */
 }
 
 void turn_right_90_degrees_intelligently() {
-    return_to_black_line();
-
     while (1) {
-        right_rotate(heavy);
-        delay(1000 * 0.05);
+        right_rotate(light);
 
         white_detect();
-        if (make_sure(1, 0, 1, 200) == 1) {
+        if (make_sure(1, 0, 1, 0) == 1) {
             break;
         }
     }
-
+    /*
     go_straight(speed);
     delay(1000 * 0.1);
+    */
 }
 
 void turn_left_90_degrees_stupidly() {
@@ -252,6 +343,7 @@ int ultrasonic_wave(int trigPin, int echoPin) {
     return duration;
 }
 
+/*
 void arrive_non_black_action() {
     go_straight(speed/100 * 50); 
     while ((A == 1) && (B == 1) && (C == 1)) {
@@ -283,6 +375,7 @@ void arrive_black_action() {
         go_straight(nodes[num].speed);
     }
 }
+*/
 
 void find_line() {
     white_detect();
@@ -291,49 +384,42 @@ void find_line() {
         //arrive_non_black_action();
 
     } else if ((A == 1) && (B == 1) && (C == 0)) {
-        //turn_right(much);
-        right_rotate(much);
+        right_rotate(normal);
         
     } else if ((A == 1) && (B == 0) && (C == 1)) {
-        go_straight(speed);
+        go_straight(normal);
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
-        //turn_right(little);
         if (if_its_90_degree_corner(200) == 1) {
             turn_right_90_degrees_intelligently();
-        } else {
-            digitalWrite(A3, 1);
-            delay(300);
-            digitalWrite(A3, 0);
-        }
-        
+        }        
+
     } else if ((A == 0) && (B == 1) && (C == 1)) {
-        //turn_left(much);
-        left_rotate(much);
+        left_rotate(normal);
 
     } else if ((A == 0) && (B == 0) && (C == 1)) {
-        //turn_left(little);
         if (if_its_90_degree_corner(200) == 1) {
             turn_left_90_degrees_intelligently();
-        } else {
-            digitalWrite(A3, 1);
-            delay(300);
-            digitalWrite(A3, 0);
-        }
-        
+        }        
+
     } else if ((A == 0) && (B == 0) && (C == 0)) {
         //arrive_black_action();
+        go_straight(normal);
     }
 }
 
 void setup() {
     Serial.begin(9600);
+    /*
     go_straight(120);
     delay(1000);
+    */
 }
 
 void loop() {
-    find_line();
+    go_straight(heavy);
+    //find_line();
 
+    delay(500);
     //Serial.print("Hello, world!");
 }

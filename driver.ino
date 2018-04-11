@@ -11,6 +11,7 @@ float left_bias = 0;
 float right_bias = 0.02734375;
 
 float special_action_interval = 0.5 * 1000;
+int time1, time2;
 
 struct node 
 {
@@ -194,11 +195,12 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     }
 }
 
-void prepare_for_anything() {
+void prepare_for_go_straight() {
     int times = 1;
     while (1) {
         left_rotate(light);
         delay(special_action_interval * times);
+        stop();
 
         white_detect();
         if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
@@ -207,6 +209,25 @@ void prepare_for_anything() {
 
         right_rotate(light);
         delay(special_action_interval * times);
+        stop();
+
+        white_detect();
+        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
+            break;
+        }
+
+        right_rotate(light);
+        delay(special_action_interval * times);
+        stop();
+
+        white_detect();
+        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
+            break;
+        }
+
+        left_rotate(light);
+        delay(special_action_interval * times);
+        stop();
 
         white_detect();
         if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
@@ -215,6 +236,12 @@ void prepare_for_anything() {
 
         times = times + 1;
     }
+}
+
+void prepare_for_turning() {
+    int time = (time2 - time1) / 2;
+    go_back(normal);
+    delay(time);
 }
 
 void back_to_black_line() {
@@ -235,12 +262,14 @@ int if_its_90_degree_corner(int timeout) {
     delay(1000);
 
     while (1) {
-        go_straight(speed);
+        go_straight(normal);
         delay(special_action_interval);
         stop();
 
         white_detect();
         if (make_sure(1, 1, 1, 0) == 1) {
+            time2 = millis();
+            prepare_for_turning();
             return 1;
         }
 
@@ -298,7 +327,7 @@ void turn_left_90_degrees_intelligently() {
         }
     }
     /*
-    go_straight(speed);
+    go_straight(normal);
     delay(1000 * 0.1);
     */
 }
@@ -313,7 +342,7 @@ void turn_right_90_degrees_intelligently() {
         }
     }
     /*
-    go_straight(speed);
+    go_straight(normal);
     delay(1000 * 0.1);
     */
 }
@@ -390,6 +419,7 @@ void find_line() {
         go_straight(normal);
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
+        time1 = millis();
         if (if_its_90_degree_corner(200) == 1) {
             turn_right_90_degrees_intelligently();
         }        
@@ -398,6 +428,7 @@ void find_line() {
         left_rotate(normal);
 
     } else if ((A == 0) && (B == 0) && (C == 1)) {
+        time1 = millis();
         if (if_its_90_degree_corner(200) == 1) {
             turn_left_90_degrees_intelligently();
         }        

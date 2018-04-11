@@ -39,37 +39,6 @@ void set_right_wheels(int go_or_back, int value) {
     }
 }
 
-/*
-// handle pins by hands
-void set_left_wheels(int go_or_back, int value) {
-    value = value - (value * left_bias);
-    if (go_or_back == 1) {
-        analogWrite(6, value);
-        analogWrite(7, 0);
-    } else if (go_or_back == -1) {
-        analogWrite(7, value);
-        analogWrite(6, 0);
-    } else if (go_or_back == 0) {
-        analogWrite(6, 0);
-        analogWrite(7, 0);
-    }
-}
-
-void set_right_wheels(int go_or_back, int value) {
-    value = value - (value * right_bias);
-    if (go_or_back == 1) {
-        analogWrite(4, value);
-        analogWrite(5, 0);
-    } else if (go_or_back == -1) {
-        analogWrite(5, value);
-        analogWrite(4, 0);
-    } else if (go_or_back == 0) {
-        analogWrite(4, 0);
-        analogWrite(5, 0);
-    }
-}
-*/
-
 void go_straight(int value) {
     set_left_wheels(1, value);
     set_right_wheels(1, value);
@@ -95,19 +64,43 @@ void right_rotate(int value) {
     set_right_wheels(-1, value);
 }
 
-void white_detect() {
-    A = digitalRead(A0); //return 1 if it is white
-    B = digitalRead(A2); 
-    C = digitalRead(A4); 
-    D = digitalRead(A3); 
+int handle_white_detector(int pin) {
+    if (analogRead(pin) < 100) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
 
-    /*
-    // handle pins by hands
+int handle_gray_detector(int pin) {
+    if (analogRead(pin) > 900) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+/*
+void analog_white_detect() {
+    A = handle_white_detector(A1); //return 1 if it is white
+    B = handle_white_detector(A2); 
+    C = handle_white_detector(A3); 
+    D = handle_white_detector(A4); 
+}
+*/
+
+void analog_white_detect() {
+    A = handle_gray_detector(A1); //return 1 if it is white
+    B = handle_gray_detector(A2); 
+    C = handle_gray_detector(A3); 
+    D = handle_gray_detector(A4); 
+}
+
+void white_detect() {
     A = digitalRead(A1); //return 1 if it is white
     B = digitalRead(A2); 
     C = digitalRead(A3); 
     D = digitalRead(A4); 
-    */
 }
 
 int make_sure(int whatsA, int whatsB, int whatsC, int whatsD, int timeout) {
@@ -301,26 +294,14 @@ void setup() {
     pinMode(10, OUTPUT);
     pinMode(5, OUTPUT);
     pinMode(6, OUTPUT);
-    pinMode(A0, INPUT);
-    pinMode(A2, INPUT);
-    pinMode(A4, INPUT);
-    pinMode(A3, INPUT);
-
-    /*
-    pinMode(6, OUTPUT);
-    pinMode(7, OUTPUT);
-    pinMode(4, OUTPUT);
-    pinMode(5, OUTPUT);
     pinMode(A1, INPUT);
     pinMode(A2, INPUT);
     pinMode(A3, INPUT);
     pinMode(A4, INPUT);
-    */
 }
 
 void loop() {
-    Serial.println(analogRead(A0));
-    delay(500);
+    go_straight(normal);
     //find_line();
 }
 

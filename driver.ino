@@ -1,7 +1,6 @@
 //#include "core.c"
 
-int A, B, C, D;
-int grey_gate = 500;
+int A, B, C;
 
 int light = 70;
 int normal = 200;
@@ -9,9 +8,6 @@ int heavy = 255;
 
 float left_bias = 0;
 float right_bias = 0.02734375;
-
-float special_action_interval = 0.5 * 1000;
-int time1, time2;
 
 struct node 
 {
@@ -94,6 +90,28 @@ void turn_right(int value) {
     set_right_wheels(1, right);
 }
 
+/*
+void turn_back_left(int value) {
+    float difference = value / 2;
+    float middle_point = 255 / 2;
+    int right = middle_point + difference;
+    int left = middle_point - difference;
+
+    set_left_wheels(-1, left);
+    set_right_wheels(-1, right);
+}
+
+void turn_back_right(int value) {
+    float difference = value / 2;
+    float middle_point = 255 / 2;
+    int left = middle_point + difference;
+    int right = middle_point - difference;
+
+    set_left_wheels(-1, left);
+    set_right_wheels(-1, right);
+}
+*/
+
 void left_rotate(int value) {
     set_right_wheels(1, value);
     set_left_wheels(-1, value);
@@ -104,71 +122,14 @@ void right_rotate(int value) {
     set_right_wheels(-1, value);
 }
 
-int handle_white_detector(int pin) {
-    if (analogRead(pin) < 100) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-int handle_gray_detector(int pin) {
-    //Serial.println(analogRead(pin));
-    if (analogRead(pin) > grey_gate) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-void analog_white_detect() {
-    A = handle_gray_detector(A1); //return 1 if it is white
-    B = handle_gray_detector(A2);
-    C = handle_gray_detector(A3);
-    D = handle_gray_detector(A4);
-
-    Serial.print("ABC and D: \n");
-    Serial.print(A);
-    Serial.print(B);
-    Serial.print(C);
-    Serial.print(" and ");
-    Serial.print(D);
-    Serial.println();
-    Serial.println();
-}
-
 void white_detect() {
-    analog_white_detect();
-
-    /*
-    A = digitalRead(A1); //return 1 if it is white
-    B = digitalRead(A2);
-    C = digitalRead(A3);
-    D = digitalRead(A4);
-    */
-
-    /*
-    Serial.print("ABC and D: \n");
-    Serial.print(A);
-    Serial.print(B);
-    Serial.print(C);
-    Serial.print(" and ");
-    Serial.print(D);
-    Serial.println();
-    Serial.println();
-    */
+    A = digitalRead(A0); //black detector
+    B = digitalRead(A2); //white detector
+    C = digitalRead(A4); //black detector
 }
 
 int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
-    if (timeout == 0) {
-        if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-
-    int interval = timeout / (timeout/4);
+    int interval = timeout / 10;
 
     int possibility = 0;
     int time_spent = 0;
@@ -176,7 +137,6 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     int hit = 0;
     int all = 0;
     while ((possibility <= 50) && (time_spent < timeout)) {
-        white_detect();
         if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
             hit = hit + 1;
         }
@@ -187,7 +147,7 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
         delay(interval);
         time_spent = time_spent + interval;
     }
-
+    
     if (time_spent >= timeout) {
         return 0;
     } else {
@@ -195,61 +155,13 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     }
 }
 
-void prepare_for_go_straight() {
-    int times = 1;
-    while (1) {
-        left_rotate(light);
-        delay(special_action_interval * times);
-        stop();
-
-        white_detect();
-        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
-            break;
-        }
-
-        right_rotate(light);
-        delay(special_action_interval * times);
-        stop();
-
-        white_detect();
-        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
-            break;
-        }
-
-        right_rotate(light);
-        delay(special_action_interval * times);
-        stop();
-
-        white_detect();
-        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
-            break;
-        }
-
-        left_rotate(light);
-        delay(special_action_interval * times);
-        stop();
-
-        white_detect();
-        if ((make_sure(1, 0, 1, 0) == 0) && (D == 0)) {
-            break;
-        }
-
-        times = times + 1;
-    }
-}
-
-void prepare_for_turning() {
-    int time = (time2 - time1) / 2;
-    go_back(normal);
-    delay(time);
-}
-
-void back_to_black_line() {
+void return_to_black_line() {
     while (1) {
         go_back(light);
+        delay(1000 * 0.01);
 
         white_detect();
-        if ((make_sure(1, 1, 1, 0) == 0)) {
+        if ((make_sure(1, 1, 1, 200) != 0)) {
             break;
         }
     }
@@ -257,94 +169,61 @@ void back_to_black_line() {
 
 int if_its_90_degree_corner(int timeout) {
     int time_spent = 0;
+    float interval = 0.01;
 
     stop();
-    delay(1000);
+    delay(1000 * interval);
 
     while (1) {
         go_straight(normal);
-        delay(special_action_interval);
-        stop();
+        delay(1000 * interval);
 
         white_detect();
-        if (make_sure(1, 1, 1, 0) == 1) {
-            time2 = millis();
-            prepare_for_turning();
+        if ((A == 1) && (B == 1) && (C == 1)) {
             return 1;
         }
 
-        time_spent = time_spent + special_action_interval;
+        time_spent = time_spent + (1000 * interval);
         if (time_spent > timeout) {
             break;
         }
     }
-
-    back_to_black_line();
+    
     return 0;
 }
 
-/*
-void turn_left_90_degrees_intelligently() { 
-    while (1) { 
-        left_rotate(heavy); 
-        delay(special_action_interval); 
-        stop(); 
- 
-        white_detect(); 
-        if (make_sure(1, 0, 1, 0) == 1) { 
-            break; 
-        } 
-    } 
- 
-    go_straight(normal); 
-    delay(500); 
-} 
- 
-void turn_right_90_degrees_intelligently() { 
-    while (1) { 
-        right_rotate(heavy);
-        delay(special_action_interval);
-        stop();
-
-        white_detect();
-        if (make_sure(1, 0, 1, 0) == 1) {
-            break;
-        }
-    }
-
-    go_straight(normal);
-    delay(500);
-}
-*/
-
 void turn_left_90_degrees_intelligently() {
+    return_to_black_line();
+
     while (1) {
-        left_rotate(light);
+        left_rotate(heavy);
+        delay(1000 * 0.05);
 
         white_detect();
-        if (make_sure(1, 0, 1, 0) == 1) {
+        if (make_sure(1, 0, 1, 200) == 1) {
             break;
         }
     }
-    /*
+
     go_straight(normal);
     delay(1000 * 0.1);
-    */
 }
 
 void turn_right_90_degrees_intelligently() {
+    return_to_black_line();
+
     while (1) {
-        right_rotate(light);
+        right_rotate(heavy);
+        delay(1000 * 0.05);
 
         white_detect();
-        if (make_sure(1, 0, 1, 0) == 1) {
+        if (make_sure(1, 0, 1, 200) == 1) {
             break;
         }
     }
-    /*
+
     go_straight(normal);
     delay(1000 * 0.1);
-    */
 }
 
 void turn_left_90_degrees_stupidly() {
@@ -372,9 +251,8 @@ int ultrasonic_wave(int trigPin, int echoPin) {
     return duration;
 }
 
-/*
 void arrive_non_black_action() {
-    go_straight(speed/100 * 50); 
+    go_straight(normal/100 * 50); 
     while ((A == 1) && (B == 1) && (C == 1)) {
         //delay(1000 * 0.5);
         white_detect();
@@ -384,7 +262,7 @@ void arrive_non_black_action() {
 void arrive_black_action() {
     num = num + 1;
 
-    go_straight(speed);
+    go_straight(normal);
     delay(nodes[num].delay_time);
 
     stop();
@@ -404,7 +282,6 @@ void arrive_black_action() {
         go_straight(nodes[num].speed);
     }
 }
-*/
 
 void find_line() {
     white_detect();
@@ -413,29 +290,30 @@ void find_line() {
         //arrive_non_black_action();
 
     } else if ((A == 1) && (B == 1) && (C == 0)) {
+        //turn_right(heavy);
         right_rotate(normal);
         
     } else if ((A == 1) && (B == 0) && (C == 1)) {
         go_straight(normal);
         
     } else if ((A == 1) && (B == 0) && (C == 0)) {
-        time1 = millis();
+        //turn_right(light);
         if (if_its_90_degree_corner(200) == 1) {
             turn_right_90_degrees_intelligently();
-        }        
-
+        }
+        
     } else if ((A == 0) && (B == 1) && (C == 1)) {
+        //turn_left(heavy);
         left_rotate(normal);
 
     } else if ((A == 0) && (B == 0) && (C == 1)) {
-        time1 = millis();
+        //turn_left(light);
         if (if_its_90_degree_corner(200) == 1) {
             turn_left_90_degrees_intelligently();
         }        
 
     } else if ((A == 0) && (B == 0) && (C == 0)) {
         //arrive_black_action();
-        go_straight(normal);
     }
 }
 
@@ -448,9 +326,7 @@ void setup() {
 }
 
 void loop() {
-    go_straight(heavy);
-    //find_line();
+    find_line();
 
-    delay(500);
     //Serial.print("Hello, world!");
 }

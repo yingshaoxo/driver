@@ -1,9 +1,11 @@
 //#include "core.c"
 
-int A, B, C;
+int A, B, C, D;
+int grey_gate = 900; //450
+int white_gate = 50;
 
 int light = 70;
-int normal = 200;
+int normal = 255;
 int heavy = 255;
 
 float left_bias = 0;
@@ -122,10 +124,59 @@ void right_rotate(int value) {
     set_right_wheels(-1, value);
 }
 
+int handle_white_detector(int pin) {
+    Serial.print(analogRead(pin));
+    Serial.print("   ");
+    if (analogRead(pin) < white_gate) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int handle_gray_detector(int pin) {
+    Serial.print(analogRead(pin));
+    Serial.print("   ");
+    if (analogRead(pin) > grey_gate) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void sensor_detect(int white_or_black, int AAA1, int AAA2, int AAA3, int AAA4) {
+    if (white_or_black == 1) {
+        A = handle_white_detector(AAA1);
+        B = handle_white_detector(AAA2);
+        C = handle_white_detector(AAA3);
+        D = handle_white_detector(AAA4);
+    } else if (white_or_black == -1) {
+        A = handle_gray_detector(AAA1);
+        B = handle_gray_detector(AAA2);
+        C = handle_gray_detector(AAA3);
+        D = handle_gray_detector(AAA4);
+    } else {
+        A = digitalRead(AAA1);
+        B = digitalRead(AAA2);
+        C = digitalRead(AAA3);
+        C = digitalRead(AAA4);
+    }
+    //return 1 if it is white
+
+    Serial.print("\nABC and D: \n");
+    Serial.print(A);
+    Serial.print(B);
+    Serial.print(C);
+    Serial.print(" and ");
+    Serial.print(D);
+    Serial.println();
+    Serial.println();
+    Serial.println();
+}
+
 void white_detect() {
-    A = digitalRead(A0); //black detector
-    B = digitalRead(A2); //white detector
-    C = digitalRead(A4); //black detector
+    //ssensor_detect(0, A0, A2, A4, A3);
+    sensor_detect(0, A1, A2, A3, A4);
 }
 
 int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
@@ -196,11 +247,14 @@ void turn_left_90_degrees_intelligently() {
     return_to_black_line();
 
     while (1) {
-        left_rotate(heavy);
+        left_rotate(normal);
         delay(1000 * 0.05);
 
         white_detect();
         if (make_sure(1, 0, 1, 200) == 1) {
+            break;
+        }
+        if (C == 0) {
             break;
         }
     }
@@ -213,11 +267,14 @@ void turn_right_90_degrees_intelligently() {
     return_to_black_line();
 
     while (1) {
-        right_rotate(heavy);
+        right_rotate(normal);
         delay(1000 * 0.05);
 
         white_detect();
         if (make_sure(1, 0, 1, 200) == 1) {
+            break;
+        }
+        if (C == 0) {
             break;
         }
     }
@@ -327,6 +384,8 @@ void setup() {
 
 void loop() {
     find_line();
+    //white_detect();
 
+    //delay(500);
     //Serial.print("Hello, world!");
 }

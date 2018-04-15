@@ -1,7 +1,7 @@
 //#include "core.c"
 
 int A, B, C, D;
-int grey_gate = 900; //450
+int grey_gate = 350; //450
 int white_gate = 50;
 
 int light = 70;
@@ -72,48 +72,6 @@ void stop() {
     set_right_wheels(0, 0);
 }
 
-void turn_left(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int right = middle_point + difference;
-    int left = middle_point - difference;
-
-    set_left_wheels(1, left);
-    set_right_wheels(1, right);
-}
-
-void turn_right(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int left = middle_point + difference;
-    int right = middle_point - difference;
-
-    set_left_wheels(1, left);
-    set_right_wheels(1, right);
-}
-
-/*
-void turn_back_left(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int right = middle_point + difference;
-    int left = middle_point - difference;
-
-    set_left_wheels(-1, left);
-    set_right_wheels(-1, right);
-}
-
-void turn_back_right(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int left = middle_point + difference;
-    int right = middle_point - difference;
-
-    set_left_wheels(-1, left);
-    set_right_wheels(-1, right);
-}
-*/
-
 void left_rotate(int value) {
     set_right_wheels(1, value);
     set_left_wheels(-1, value);
@@ -176,7 +134,7 @@ void sensor_detect(int white_or_black, int AAA1, int AAA2, int AAA3, int AAA4) {
 
 void white_detect() {
     //ssensor_detect(0, A0, A2, A4, A3);
-    sensor_detect(0, A1, A2, A3, A4);
+    sensor_detect(-1, A0, A2, A4, A3);
 }
 
 int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
@@ -188,6 +146,7 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     int hit = 0;
     int all = 0;
     while ((possibility <= 50) && (time_spent < timeout)) {
+        white_detect();
         if ((whatsA == A) && (whatsB == B) && (whatsC == C)) {
             hit = hit + 1;
         }
@@ -206,13 +165,34 @@ int make_sure(int whatsA, int whatsB, int whatsC, int timeout) {
     }
 }
 
+int if_its_right_in_center() {
+    if (make_sure(1, 0, 1, 100) == 1) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void left_shake(int value) {
+    int adds = 50;
+    while (1) {
+        set_right_wheels(1, value + adds);
+        set_left_wheels(-1, value);
+        delay(1000 * 0.5);
+
+        set_left_wheels(1, value + adds);
+        set_right_wheels(-1, value);
+        delay(1000 * 0.5);
+    }
+}
+
 void return_to_black_line() {
     while (1) {
         go_back(light);
         delay(1000 * 0.01);
 
         white_detect();
-        if ((make_sure(1, 1, 1, 200) != 0)) {
+        if ((make_sure(1, 1, 1, 200) == 0)) {
             break;
         }
     }
@@ -254,7 +234,7 @@ void turn_left_90_degrees_intelligently() {
         if (make_sure(1, 0, 1, 200) == 1) {
             break;
         }
-        if (C == 0) {
+        if (D == 0) {
             break;
         }
     }
@@ -268,13 +248,12 @@ void turn_right_90_degrees_intelligently() {
 
     while (1) {
         right_rotate(normal);
-        delay(1000 * 0.05);
 
         white_detect();
         if (make_sure(1, 0, 1, 200) == 1) {
             break;
         }
-        if (C == 0) {
+        if (D == 0) {
             break;
         }
     }
@@ -308,6 +287,7 @@ int ultrasonic_wave(int trigPin, int echoPin) {
     return duration;
 }
 
+/*
 void arrive_non_black_action() {
     go_straight(normal/100 * 50); 
     while ((A == 1) && (B == 1) && (C == 1)) {
@@ -339,6 +319,7 @@ void arrive_black_action() {
         go_straight(nodes[num].speed);
     }
 }
+*/
 
 void find_line() {
     white_detect();
@@ -383,6 +364,7 @@ void setup() {
 }
 
 void loop() {
+    //left_shake(normal);
     find_line();
     //white_detect();
 

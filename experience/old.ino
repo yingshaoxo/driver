@@ -12,6 +12,9 @@ int gray_gate_D = 500;
 int all_times = 0;
 int back_times = 0;
 
+int ultrasonic_wave_detector_height;
+int wave_gate = 10;
+
 int light = 180;
 int normal = 200;
 int heavy = 255;
@@ -19,16 +22,14 @@ int heavy = 255;
 float left_bias = 0;//.02634375;
 float right_bias = 0;//0.02734375;
 
-int last_action;
-
 struct node 
 {
     int key;
     int direction;
     int delay_seconds;
 } nodes[8] = {
-    {0, -1, 3},
-    {1, 0, 3},
+    {0, 1, 8},
+    {1, 1, 10},
     {2, 0, 0},
     {3, 0, 0},
     {4, 0, 0},
@@ -89,26 +90,6 @@ void left_rotate(int value) {
 void right_rotate(int value) {
     set_left_wheels(1, value);
     set_right_wheels(-1, value);
-}
-
-void turn_back_left(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int right = middle_point + difference;
-    int left = middle_point - difference;
-
-    set_left_wheels(-1, left);
-    set_right_wheels(-1, right);
-}
-
-void turn_back_right(int value) {
-    float difference = value / 2;
-    float middle_point = 255 / 2;
-    int left = middle_point + difference;
-    int right = middle_point - difference;
-
-    set_left_wheels(-1, left);
-    set_right_wheels(-1, right);
 }
 
 int handle_white_detector(int pin) {
@@ -182,20 +163,53 @@ void sensor_detect(int white_or_black, int AAA1, int AAA2, int AAA3, int AAA4) {
 }
 
 void white_detect() {
-    sensor_detect(-1, A0, A2, A4, 8);
+    sensor_detect(-1, A0, A2, A4, A3);
 }
 
-void turn_left_45_degrees_stupidly() {
-    left_rotate(heavy);
-    delay(600);
+void take_a_break() {
+    stop();
+    delay(500);
 }
 
-void turn_right_45_degrees_stupidly() {
-    right_rotate(heavy);
-    delay(600);
+int be_yourself() {
+    if ((D == 0) && ((A == 0) && (B == 0) && (C == 0))) {
+        return 1;
+    }
+
+    int interval = 500;
+    while (1) {
+        left_rotate(light);
+        delay(interval);
+        take_a_break();
+
+        white_detect();
+        if (D == 0) {
+            break;
+        }
+
+        right_rotate(light);
+        delay(interval);
+        take_a_break();
+
+        right_rotate(light);
+        delay(interval);
+        take_a_break();
+
+        white_detect();
+        if (D == 0) {
+            break;
+        }
+
+        left_rotate(light);
+        delay(interval);
+        take_a_break();
+
+        interval = interval + 100;
+    }
+
+    return 0;
 }
 
-/*
 void turn_left_45_degrees_stupidly() {
     left_rotate(heavy);
     delay(300);
@@ -205,28 +219,22 @@ void turn_right_45_degrees_stupidly() {
     right_rotate(heavy);
     delay(300);
 }
-*/
 
-void go_through_node() {
+void turn_left_90_degrees_intelligently() {
+    turn_left_45_degrees_stupidly();
     while (1) {
         go_straight(normal);
-        //delay(1000 * 0.05);
+        delay(1000 * 0.05);
 
         white_detect();
         if ((A == 1) && (C == 1)) {
             break;
         }
     }
-}
-
-void turn_left_90_degrees_intelligently() {
-    if (D == 1) {
-        turn_left_45_degrees_stupidly();
-    }
 
     while (1) {
         left_rotate(normal);
-        //delay(1000 * 0.05);
+        delay(1000 * 0.05);
 
         white_detect();
         if (B == 1) {
@@ -236,7 +244,7 @@ void turn_left_90_degrees_intelligently() {
 
     while (1) {
         left_rotate(normal);
-        //delay(1000 * 0.05);
+        delay(1000 * 0.05);
 
         white_detect();
         if (B == 0) {
@@ -246,13 +254,20 @@ void turn_left_90_degrees_intelligently() {
 }
 
 void turn_right_90_degrees_intelligently() {
-    if (D == 1) {
-        turn_right_45_degrees_stupidly();
+    turn_right_45_degrees_stupidly();
+    while (1) {
+        go_straight(normal);
+        delay(1000 * 0.05);
+
+        white_detect();
+        if ((A == 1) && (C == 1)) {
+            break;
+        }
     }
 
     while (1) {
         right_rotate(normal);
-        //delay(1000 * 0.05);
+        delay(1000 * 0.05);
 
         white_detect();
         if (B == 1) {
@@ -262,7 +277,7 @@ void turn_right_90_degrees_intelligently() {
 
     while (1) {
         right_rotate(normal);
-        //delay(1000 * 0.05);
+        delay(1000 * 0.05);
 
         white_detect();
         if (B == 0) {
@@ -271,7 +286,6 @@ void turn_right_90_degrees_intelligently() {
     }
 }
 
-/*
 int ultrasonic_wave(int trigPin, int echoPin) {
     long duration;
     pinMode(trigPin, OUTPUT);
@@ -286,12 +300,26 @@ int ultrasonic_wave(int trigPin, int echoPin) {
     if ((duration < 2) || (duration > 300)) return false;
     return duration;
 }
-*/
+
+void wave_detect() {
+    ultrasonic_wave_detector_height = ultrasonic_wave(2, A3);
+}
+
+int is_arriving_blocks() {
+    if (ultrasonic_wave_detector_height < wave_gate) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void blocks_arriving_action() {
+    go_straight(heavy);
+    delay(1000 * nodes[num].delay_seconds);
+}
 
 void node_arriving_action() {
     num = num + 1;
-
-    go_through_node();
 
     stop();
     delay(3000);
@@ -301,19 +329,16 @@ void node_arriving_action() {
 
     } else if (nodes[num].direction == 0) {
         go_straight(normal);
-        //delay(800);
+        delay(800);
 
     } else if (nodes[num].direction == 1) {
         turn_right_90_degrees_intelligently();
 
     }
 
-    if (num == 7) {
+    if (num == 1) {
         num = 0;
     }
-
-    go_back(heavy);
-    delay(200);
 }
 
 void find_line() {
@@ -321,38 +346,28 @@ void find_line() {
 
     if ((A == 1) && (B == 1) && (C == 1)) {
         if (back_times < 3) {
-            if (last_action == 0) {
-                go_back(heavy);
-            } else if (last_action == -1) {
-                turn_back_right(heavy);
-            } else if (last_action == 1) {
-                turn_back_left(heavy);
-            }
+            go_back(heavy);
         }
 
         back_times += 1;
         all_times += 1;
 
-    } else if ((A == 0) && (B == 0) && (C == 0)) {
-        //go_straight(heavy);
-        node_arriving_action();
-
-    } else if ((A == 1) && (C == 0)) {
+    }
+    else if ((A == 1) && (C == 0)) {
         right_rotate(heavy);
-
-        last_action = 1;
         
     } else if ((A == 1) && (C == 1)) {
         go_straight(heavy);
 
         all_times += 1;
-
-        last_action = 0;
         
     } else if ((A == 0) && (C == 1)) {
         left_rotate(heavy);
 
-        last_action = -1;
+    } else if ((A == 0) && (C == 0)) {
+        //node_arriving_action();
+
+    } else if ((B == 1) && (D == 1)) {
     }
 
     if (all_times > 27) {
@@ -363,16 +378,17 @@ void find_line() {
 void setup() {
     Serial.begin(9600);
     /*
-    go_straight(heavy);
-    delay(1800);
+    go_straight(120);
+    delay(1000);
     */
-    //go_straight(heavy);
+    go_straight(heavy);
     
 }
 
 void loop() {
-    find_line();
-
+    //find_line();
     //white_detect();
+
+    //Serial.println(ultrasonic_wave(2, A3));
     //delay(500);
 }
